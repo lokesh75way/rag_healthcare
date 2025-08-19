@@ -1,6 +1,8 @@
+from uuid import uuid4
+
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
-from uuid import uuid4
+
 from agents.langchain_agent import handle_user_message
 
 app = FastAPI()
@@ -34,6 +36,7 @@ async def chat(request: ChatRequest):
     # Update chat history dynamically
     history.append((reply['input'], reply['output']))
     session_store[session_id] = history
+    reply['input'] = message
 
     return {
         "session_id": session_id,

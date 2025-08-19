@@ -1,7 +1,25 @@
+from typing import List
 
-from langchain_core.tools import tool
+from langchain.tools import StructuredTool
+from pydantic import BaseModel, Field
 
-# Mock doctors with IDs per specialty
+
+class GetDoctorsArgs(BaseModel):
+    specialty: str = Field(
+        default="general physician",
+        description="Specialty of doctor to search for, e.g., cardiologist, neurologist, etc."
+    )
+    name: str = Field(
+        default="",
+        description="Optional: Name of the doctor to search for"
+    )
+
+
+class Doctor(BaseModel):
+    id: str
+    name: str
+
+
 DOCTOR_DIRECTORY = {
     "cardiologist": [
         {"id": "D1001", "name": "Dr. Ayesha Khan"},
@@ -33,11 +51,38 @@ DOCTOR_DIRECTORY = {
     ]
 }
 
-@tool
-def get_doctors(specialty: str = "general physician") -> str:
-    """
-     Retrieve doctor data in structured format.
-    """
 
-    doctors = DOCTOR_DIRECTORY.get(specialty, [])
-    return doctors
+def get_doctors(specialty: str = "", name: str = "") -> List[Doctor]:
+    """
+    Retrieve doctor data based on specialty and/or partial name (word match).
+    - If both `specialty` and `name` are provided, return doctors in that specialty whose name contains the search word (case-insensitive).
+    - If only `specialty` is provided, return all doctors in that specialty.
+    - If only `name` is provided, search all specialties for doctors whose names contain the search word.
+    """
+    results = []
+    name_word = name.lower().strip()
+
+    def matches_name(doc_name: str) -> bool:
+        return any(word.lower() == name_word for word in doc_name.split())
+
+    if specialty and name_word:
+        doctors = DOCTOR_DIRECTORY.get(specialty, [])
+        results = [Doctor(**doc) for doc in doctors if matches_name(doc["name"])]
+    elif specialty:
+        doctors = DOCTOR_DIRECTORY.get(specialty, [])
+        results = [Doctor(**doc) for doc in doctors]
+    elif name_word:
+        for docs in DOCTOR_DIRECTORY.values():
+            for doc in docs:
+                if matches_name(doc["name"]):
+                    results.append(Doctor(**doc))
+
+    return results
+
+
+get_doctors_tool = StructuredTool.from_function(
+    func=get_doctors,
+    name="GetDoctors",
+    description="Retrieve doctor IDs and names by specialty or by name (name takes priority).",
+    args_schema=GetDoctorsArgs,
+)
