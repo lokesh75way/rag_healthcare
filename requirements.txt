@@ -9,4 +9,4 @@ langchain-openai==0.3.28
 langchain-google-genai 
 google-generativeai
 
-python-dotenv
+pydantic-setting==2.10.1
