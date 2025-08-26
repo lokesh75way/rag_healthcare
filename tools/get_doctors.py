@@ -3,6 +3,10 @@ from typing import List
 from langchain.tools import StructuredTool
 from pydantic import BaseModel, Field
 
+from services.backend import HealthcareService
+
+healthcare_service = HealthcareService()
+
 
 class GetDoctorsArgs(BaseModel):
     specialty: str = Field(
@@ -59,25 +63,8 @@ def get_doctors(specialty: str = "", name: str = "") -> List[Doctor]:
     - If only `specialty` is provided, return all doctors in that specialty.
     - If only `name` is provided, search all specialties for doctors whose names contain the search word.
     """
-    results = []
-    name_word = name.lower().strip()
 
-    def matches_name(doc_name: str) -> bool:
-        return any(word.lower() == name_word for word in doc_name.split())
-
-    if specialty and name_word:
-        doctors = DOCTOR_DIRECTORY.get(specialty, [])
-        results = [Doctor(**doc) for doc in doctors if matches_name(doc["name"])]
-    elif specialty:
-        doctors = DOCTOR_DIRECTORY.get(specialty, [])
-        results = [Doctor(**doc) for doc in doctors]
-    elif name_word:
-        for docs in DOCTOR_DIRECTORY.values():
-            for doc in docs:
-                if matches_name(doc["name"]):
-                    results.append(Doctor(**doc))
-
-    return results
+    return healthcare_service.get_doctors(specialty=specialty, name=name)
 
 
 get_doctors_tool = StructuredTool.from_function(

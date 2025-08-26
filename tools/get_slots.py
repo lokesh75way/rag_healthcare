@@ -1,6 +1,9 @@
 from langchain.tools import StructuredTool
 from pydantic import BaseModel, Field
 
+from services.backend import HealthcareService
+
+healthcare_service = HealthcareService()
 
 # Schema for input args
 class GetSlotsArgs(BaseModel):
@@ -12,8 +15,8 @@ def get_slots(doctor_id: str) -> list[str]:
     """
     Retrieve a list of available appointment slots for the given doctor id.
     """
-    print(f"Fetching slots for doctor {doctor_id}")
-    return ["10:00 AM", "2:00 PM", "4:30 PM"]
+
+    return healthcare_service.get_slots(doctor_id=doctor_id)
 
 
 # Register tool
